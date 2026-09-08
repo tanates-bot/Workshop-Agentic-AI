@@ -1,0 +1,16 @@
+import type { Env } from '../env';
+import { errorJson, json } from '../lib/http';
+import { runGeminiConversation } from './providers/gemini';
+import { runOpenAiCompatConversation } from './providers/openai-compat';
+import type { ChatMessage, ChatProvider, ChatTurnResult, McpTool, ToolCaller } from './types';
+
+const OPENAI_BASE_URL = 'https://api.openai.com/v1';
+export function resolveProvider(value: unknown, env: Env): ChatProvider { const provider = typeof value === 'string' ? value : env.DEFAULT_CHAT_PROVIDER; return provider === 'openai' || provider === 'openai-compat' ? provider : 'gemini'; }
+export function defaultModelFor(provider: ChatProvider, env: Env): string { return provider === 'gemini' ? env.GEMINI_MODEL?.trim() || 'gemini-flash-latest' : provider === 'openai' ? env.OPENAI_MODEL?.trim() || 'gpt-4o-mini' : env.OPENAI_COMPAT_MODEL?.trim() || 'gpt-4o-mini'; }
+export function buildSystemPrompt(): string { return 'คุณคือผู้ช่วย AI ของระบบ AI Desk ตอบเป็นภาษาไทยอย่างสุภาพ กระชับ และช่วยเหลือผู้ใช้ตามข้อมูลที่มี หากไม่แน่ใจให้บอกตามตรง ห้ามอ้างว่าทำสิ่งที่ยังไม่ได้ทำ'; }
+function validHistory(value: unknown): ChatMessage[] { if (!Array.isArray(value)) return []; return value.filter((item): item is ChatMessage => item !== null && typeof item === 'object' && ['user', 'assistant'].includes((item as ChatMessage).role) && typeof (item as ChatMessage).content === 'string').slice(-40); }
+export function resolveTools(): McpTool[] { return []; }
+export function resolveApiKey(provider: ChatProvider, env: Env): string | undefined { return provider === 'gemini' ? env.GEMINI_API_KEY : provider === 'openai' ? env.OPENAI_API_KEY : env.OPENAI_COMPAT_API_KEY; }
+export function resolveBaseUrl(provider: ChatProvider, env: Env): string | undefined { return provider === 'openai' ? OPENAI_BASE_URL : provider === 'openai-compat' ? env.OPENAI_COMPAT_BASE_URL : undefined; }
+export async function runChatTurn(message: string, history: ChatMessage[], provider: ChatProvider, model: string, env: Env, toolCaller?: ToolCaller): Promise<ChatTurnResult> { const messages = [...history, { role: 'user' as const, content: message }]; const tools = resolveTools(); const result = provider === 'gemini' ? await runGeminiConversation(resolveApiKey(provider, env), model, messages, buildSystemPrompt(), tools, toolCaller) : await runOpenAiCompatConversation(resolveBaseUrl(provider, env), resolveApiKey(provider, env), model, messages, buildSystemPrompt(), tools, toolCaller); return { ...result, provider, model }; }
+export async function handleChatRoute(request: Request, env: Env): Promise<Response> { if (request.method !== 'POST') return errorJson('รองรับเฉพาะ POST เท่านั้น', 405); try { const body = await request.json() as { message?: unknown; history?: unknown; provider?: unknown; model?: unknown }; if (typeof body.message !== 'string' || !body.message.trim()) return errorJson('กรุณาระบุ message', 400); const provider = resolveProvider(body.provider, env); const model = typeof body.model === 'string' && body.model.trim() ? body.model.trim() : defaultModelFor(provider, env); return json(await runChatTurn(body.message.trim(), validHistory(body.history), provider, model, env)); } catch { return errorJson('รูปแบบคำขอไม่ถูกต้อง', 400); } }
