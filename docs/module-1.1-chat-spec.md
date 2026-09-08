@@ -6,7 +6,7 @@
 ## บริบท
 
 นี่คือ module แรกของ 7 module ยังไม่มีโค้ดใดในโปรเจกต์นี้เลยตอนเริ่ม (ถ้าเริ่มจาก branch `starter`) — ต้องสร้าง
-"ระบบกลาง" ของ worker (entrypoint/router/env types) ไปพร้อมกับ chat engine ในโมดูลเดียวกัน
+"ระบบกลาง" ของ worker (enscm-history-item:c%3A%5CUsers%5CUSER%5Cubupcmo%5CWorkshop-Agentic-AI?%7B%22repositoryId%22%3A%22scm0%22%2C%22historyItemId%22%3A%22b4344af5ab578377f3c21bf34118ceb1aa59445b%22%2C%22historyItemParentId%22%3A%22d936bed28f29c56d5afd0c89f5c1cb8164f01667%22%2C%22historyItemDisplayId%22%3A%22b4344af%22%7Dtrypoint/router/env types) ไปพร้อมกับ chat engine ในโมดูลเดียวกัน
 
 **เป้าหมายจบโมดูล**: เปิด `<WORKER_URL>/chat/` แล้วคุยกับ AI ได้จริง ผ่าน backend (ไม่ใช่เรียก API ตรงจาก
 เบราว์เซอร์) เลือกได้ 3 provider: **Gemini**, **OpenAI** (เรียก API ตรงทั้งคู่) หรือ **AI gateway แบบ
